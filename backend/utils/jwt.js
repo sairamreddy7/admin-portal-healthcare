@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'admin-healthcare-portal-secret-key-2025';
+// Require JWT_SECRET to be set in environment variables
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL ERROR: JWT_SECRET is not defined in environment variables.');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '8h';
 
 function generateToken(userId, role, email) {

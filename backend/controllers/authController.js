@@ -22,7 +22,7 @@ async function login(req, res) {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials or not an admin user' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Verify password
@@ -39,10 +39,9 @@ async function login(req, res) {
       token,
       user: {
         id: user.id,
+        username: user.username,
         email: user.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName
+        role: user.role
       }
     });
   } catch (error) {
@@ -53,7 +52,7 @@ async function login(req, res) {
 
 async function createAdmin(req, res) {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, username } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -68,17 +67,28 @@ async function createAdmin(req, res) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
+    // Generate username from email if not provided
+    const adminUsername = username || email.toLowerCase().split('@')[0];
+
+    // Check if username is taken
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: adminUsername }
+    });
+
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Username already exists. Please provide a unique username.' });
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Create admin user
     const admin = await prisma.user.create({
       data: {
+        username: adminUsername,
         email: email.toLowerCase(),
         password: hashedPassword,
-        role: 'ADMIN',
-        firstName: firstName || 'Admin',
-        lastName: lastName || 'User'
+        role: 'ADMIN'
       }
     });
 
@@ -86,10 +96,9 @@ async function createAdmin(req, res) {
       message: 'Admin user created successfully',
       user: {
         id: admin.id,
+        username: admin.username,
         email: admin.email,
-        role: admin.role,
-        firstName: admin.firstName,
-        lastName: admin.lastName
+        role: admin.role
       }
     });
   } catch (error) {
