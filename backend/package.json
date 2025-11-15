@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "generate-api-key": "node utils/apiKeyGenerator.js",
     "create-admin": "node scripts/createAdmin.js",
+    "data-retention": "node scripts/dataRetention.js",
     "prisma:generate": "npx prisma generate"
   },
   "keywords": [

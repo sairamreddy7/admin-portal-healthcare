@@ -227,3 +227,42 @@ model PasswordResetToken {
   @@index([userId])
   @@map("password_reset_tokens")
 }
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  username    String?
+  action      String
+  resource    String
+  resourceId  String?
+  method      String
+  endpoint    String
+  ipAddress   String?
+  userAgent   String?
+  statusCode  Int?
+  errorMessage String?
+  requestBody Json?
+  responseBody Json?
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  headName    String?
+  location    String?
+  phoneNumber String?
+  email       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("departments")
+}

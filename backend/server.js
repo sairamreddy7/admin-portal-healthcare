@@ -3,10 +3,13 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+const { auditLogger } = require('./middleware/auditLogger');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const auditRoutes = require('./routes/auditRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const patientRoutes = require('./routes/patientRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
@@ -31,6 +34,9 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - [ADMIN] ${req.method} ${req.path}`);
   next();
 });
+
+// Audit logging (HIPAA compliance)
+app.use(auditLogger);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -76,11 +82,44 @@ app.get('/', (req, res) => {
   });
 });
 
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    database: 'unknown',
+    memory: process.memoryUsage()
+  };
+
+  // Check database connectivity
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    health.database = 'connected';
+  } catch (error) {
+    health.database = 'disconnected';
+    health.status = 'degraded';
+    health.error = 'Database connection failed';
+  } finally {
+    await prisma.$disconnect();
+  }
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/audit-logs', auditRoutes);
+app.use('/api/departments', departmentRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
