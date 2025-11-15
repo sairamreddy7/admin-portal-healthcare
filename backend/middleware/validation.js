@@ -118,6 +118,50 @@ const validateCreateAdmin = [
   validate
 ];
 
+// Password reset request validation
+const validatePasswordResetRequest = [
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Must be a valid email address')
+    .normalizeEmail()
+    .isLength({ max: 255 })
+    .withMessage('Email must be less than 255 characters'),
+  validate
+];
+
+// Reset password validation
+const validateResetPassword = [
+  body('token')
+    .trim()
+    .notEmpty()
+    .withMessage('Reset token is required')
+    .isLength({ min: 32, max: 128 })
+    .withMessage('Invalid token format'),
+  body('newPassword')
+    .trim()
+    .isLength({ min: 8, max: 100 })
+    .withMessage('Password must be between 8 and 100 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+  validate
+];
+
+// Change password validation
+const validateChangePassword = [
+  body('currentPassword')
+    .trim()
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .trim()
+    .isLength({ min: 8, max: 100 })
+    .withMessage('New password must be between 8 and 100 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+  validate
+];
+
 // UUID parameter validation
 const validateUUID = (paramName = 'id') => {
   return [
@@ -142,5 +186,8 @@ module.exports = {
   validateCreateUser,
   validateUpdateUser,
   validateCreateAdmin,
+  validatePasswordResetRequest,
+  validateResetPassword,
+  validateChangePassword,
   validateUUID
 };
