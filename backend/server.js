@@ -17,6 +17,7 @@ const billingRoutes = require('./routes/billingRoutes');
 const prescriptionRoutes = require('./routes/prescriptionRoutes');
 const testResultRoutes = require('./routes/testResultRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const externalRoutes = require('./routes/externalRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -86,6 +87,7 @@ app.get('/', (req, res) => {
 app.get('/health', async (req, res) => {
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
+  const externalApi = require('./utils/externalApiClient');
 
   const health = {
     status: 'ok',
@@ -94,6 +96,7 @@ app.get('/health', async (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     version: '1.0.0',
     database: 'unknown',
+    externalServices: {},
     memory: process.memoryUsage()
   };
 
@@ -107,6 +110,25 @@ app.get('/health', async (req, res) => {
     health.error = 'Database connection failed';
   } finally {
     await prisma.$disconnect();
+  }
+
+  // Check external services health
+  try {
+    const externalHealth = await externalApi.checkHealth();
+    health.externalServices = externalHealth;
+
+    // Mark as degraded if external services are unavailable
+    if (!externalHealth.doctorService.available || !externalHealth.patientService.available) {
+      if (health.status === 'ok') {
+        health.status = 'degraded';
+        health.warning = 'Some external services are unavailable';
+      }
+    }
+  } catch (error) {
+    health.externalServices = {
+      error: 'Failed to check external services',
+      message: error.message
+    };
   }
 
   const statusCode = health.status === 'ok' ? 200 : 503;
@@ -127,6 +149,9 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/test-results', testResultRoutes);
 app.use('/api/messages', messageRoutes);
+
+// External service integration routes (proxies to Doctor/Patient Portal)
+app.use('/api/external', externalRoutes);
 
 // 404 handler
 app.use((req, res) => {
