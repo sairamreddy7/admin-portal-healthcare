@@ -13,10 +13,9 @@ async function createAdminUser() {
     const password = process.env.ADMIN_PASSWORD || 'Admin@123';
 
     // Check if admin already exists
-    const existingAdmin = await prisma.user.findFirst({
+    const existingAdmin = await prisma.admin.findFirst({
       where: {
-        email: email,
-        role: 'ADMIN'
+        email: email
       }
     });
 
@@ -29,12 +28,12 @@ async function createAdminUser() {
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Create admin user
-    const admin = await prisma.user.create({
+    const admin = await prisma.admin.create({
       data: {
         username: email.split('@')[0],
         email: email,
         password: hashedPassword,
-        role: 'ADMIN',
+        role: 'SUPER_ADMIN',
         isActive: true
       }
     });
