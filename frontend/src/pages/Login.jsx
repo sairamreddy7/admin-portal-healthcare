@@ -143,7 +143,7 @@ export default function Login() {
                 color: '#374151',
                 fontSize: '0.875rem'
               }}>
-                Email Address
+                Username
               </label>
               <div style={{ position: 'relative' }}>
                 <div style={{
@@ -154,15 +154,15 @@ export default function Login() {
                   color: '#9ca3af',
                   fontSize: '1.25rem'
                 }}>
-                  ✉️
+                  👤
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@healthcare.com"
+                  placeholder="admin"
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   style={{
                     width: '100%',
                     padding: '0.875rem 1rem 0.875rem 3rem',

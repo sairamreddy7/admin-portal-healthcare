@@ -2,10 +2,13 @@ import api from './api';
 
 export const authService = {
   async login(email, password) {
-    const response = await api.post('/auth/login', { email, password });
-    if (response.data.token) {
-      localStorage.setItem('adminToken', response.data.token);
-      localStorage.setItem('adminUser', JSON.stringify(response.data.user));
+    // Azure backend uses 'username' instead of 'email'
+    const response = await api.post('/auth/login', { username: email, password });
+    if (response.data.token || response.data.data?.token) {
+      const token = response.data.token || response.data.data?.token;
+      const user = response.data.user || response.data.data;
+      localStorage.setItem('adminToken', token);
+      localStorage.setItem('adminUser', JSON.stringify(user));
     }
     return response.data;
   },

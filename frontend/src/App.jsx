@@ -6,6 +6,12 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Doctors from './pages/Doctors';
 import Patients from './pages/Patients';
+import Appointments from './pages/Appointments';
+import Billing from './pages/Billing';
+import Prescriptions from './pages/Prescriptions';
+import TestResults from './pages/TestResults';
+import Messages from './pages/Messages';
+import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 
 function PrivateRoute({ children }) {
@@ -23,6 +29,12 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="doctors" element={<Doctors />} />
           <Route path="patients" element={<Patients />} />
+          <Route path="appointments" element={<Appointments />} />
+          <Route path="billing" element={<Billing />} />
+          <Route path="prescriptions" element={<Prescriptions />} />
+          <Route path="test-results" element={<TestResults />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

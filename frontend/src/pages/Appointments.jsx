@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { FiCalendar, FiClock, FiUser, FiX, FiRefreshCw, FiFilter } from 'react-icons/fi';
 import { appointmentService } from '../services/userService';
 
@@ -12,34 +12,55 @@ export default function Appointments() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const loadAppointments = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      
-      const params = {};
-      if (statusFilter !== 'ALL') {
-        params.status = statusFilter;
-      }
-      
-      const response = await appointmentService.getAll(params);
-      console.log('Appointments API response:', response.data);
-      const appointmentsData = response.data?.data || [];
-      setAppointments(appointmentsData);
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error('Error loading appointments:', err);
-      setAppointments([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [statusFilter]);
-
   useEffect(() => {
+    const loadAppointments = async (isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+        
+        // Fetch all appointments with a high limit to avoid pagination
+        const params = {
+          limit: 1000 // Request all appointments
+        };
+        
+        const response = await appointmentService.getAll(params);
+        console.log('Appointments API response:', response);
+        console.log('Response data:', response.data);
+        console.log('Response data type:', typeof response.data, Array.isArray(response.data));
+        console.log('response.data.data:', response.data?.data);
+        console.log('response.data.appointments:', response.data?.appointments);
+        
+        // Handle different response structures
+        let appointmentsData;
+        if (Array.isArray(response.data)) {
+          appointmentsData = response.data;
+        } else if (response.data?.data?.appointments) {
+          // Backend returns { success, data: { appointments: [], pagination: {} } }
+          appointmentsData = response.data.data.appointments;
+        } else if (response.data?.appointments) {
+          appointmentsData = response.data.appointments;
+        } else if (response.data?.data && Array.isArray(response.data.data)) {
+          appointmentsData = response.data.data;
+        } else {
+          appointmentsData = [];
+        }
+        
+        console.log('Parsed appointments array:', appointmentsData);
+        console.log('Appointments count:', appointmentsData?.length);
+        setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
+        setLastUpdated(new Date());
+      } catch (err) {
+        console.error('Error loading appointments:', err);
+        setAppointments([]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    };
+
     loadAppointments();
 
     const interval = setInterval(() => {
@@ -48,10 +69,38 @@ export default function Appointments() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [loadAppointments]);
+  }, []);
 
-  const handleManualRefresh = () => {
-    loadAppointments(true);
+  const handleManualRefresh = async () => {
+    try {
+      setRefreshing(true);
+      // Fetch all appointments with a high limit to avoid pagination
+      const params = {
+        limit: 1000 // Request all appointments
+      };
+      const response = await appointmentService.getAll(params);
+      
+      // Handle different response structures
+      let appointmentsData;
+      if (Array.isArray(response.data)) {
+        appointmentsData = response.data;
+      } else if (response.data?.data?.appointments) {
+        appointmentsData = response.data.data.appointments;
+      } else if (response.data?.appointments) {
+        appointmentsData = response.data.appointments;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        appointmentsData = response.data.data;
+      } else {
+        appointmentsData = [];
+      }
+      
+      setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Error refreshing appointments:', err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleAppointmentClick = (appointment) => {
@@ -62,6 +111,8 @@ export default function Appointments() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'SCHEDULED':
+        return { bg: '#dbeafe', color: '#1e40af' };
+      case 'CONFIRMED':
         return { bg: '#dbeafe', color: '#1e40af' };
       case 'COMPLETED':
         return { bg: '#d1fae5', color: '#065f46' };
@@ -74,13 +125,18 @@ export default function Appointments() {
 
   const filteredAppointments = appointments.filter(apt => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       apt.patient?.firstName?.toLowerCase().includes(searchLower) ||
       apt.patient?.lastName?.toLowerCase().includes(searchLower) ||
       apt.doctor?.firstName?.toLowerCase().includes(searchLower) ||
       apt.doctor?.lastName?.toLowerCase().includes(searchLower) ||
       apt.reason?.toLowerCase().includes(searchLower)
     );
+    
+    // Apply status filter
+    const matchesStatus = statusFilter === 'ALL' || apt.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   if (loading) {
@@ -173,8 +229,9 @@ export default function Appointments() {
                 background: 'white'
               }}
             >
-              <option value="ALL">All Status</option>
+              <option value="ALL">All Status ({appointments.length})</option>
               <option value="SCHEDULED">Scheduled</option>
+              <option value="CONFIRMED">Confirmed</option>
               <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
@@ -219,11 +276,13 @@ export default function Appointments() {
                         <FiCalendar style={{ color: '#6b7280' }} />
                         <div>
                           <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                            {new Date(appointment.appointmentDate).toLocaleDateString()}
+                            {appointment.dateTime ? new Date(appointment.dateTime).toLocaleDateString() : 
+                             appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : 'N/A'}
                           </div>
                           <div style={{ fontSize: '0.875rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                             <FiClock size={12} />
-                            {appointment.appointmentTime}
+                            {appointment.dateTime ? new Date(appointment.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
+                             appointment.appointmentTime || 'N/A'}
                           </div>
                         </div>
                       </div>
@@ -340,7 +399,7 @@ export default function Appointments() {
               <div>
                 <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.5rem' }}>DATE & TIME</h3>
                 <p style={{ fontSize: '1rem', color: '#1f2937' }}>
-                  📅 {new Date(selectedAppointment.appointmentDate).toLocaleDateString('en-US', { 
+                  📅 {new Date(selectedAppointment.dateTime || selectedAppointment.appointmentDate).toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
@@ -348,7 +407,9 @@ export default function Appointments() {
                   })}
                 </p>
                 <p style={{ fontSize: '1rem', color: '#1f2937', marginTop: '0.25rem' }}>
-                  🕐 {selectedAppointment.appointmentTime}
+                  🕐 {selectedAppointment.dateTime 
+                    ? new Date(selectedAppointment.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : selectedAppointment.appointmentTime || 'Not specified'}
                 </p>
               </div>
 

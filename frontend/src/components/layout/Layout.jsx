@@ -35,6 +35,12 @@ export default function Layout() {
           <NavLink to="/users" isActive={isActive('/users')}>👥 Users</NavLink>
           <NavLink to="/doctors" isActive={isActive('/doctors')}>🩺 Doctors</NavLink>
           <NavLink to="/patients" isActive={isActive('/patients')}>🏥 Patients</NavLink>
+          <NavLink to="/appointments" isActive={isActive('/appointments')}>📅 Appointments</NavLink>
+          <NavLink to="/billing" isActive={isActive('/billing')}>💰 Billing</NavLink>
+          <NavLink to="/prescriptions" isActive={isActive('/prescriptions')}>💊 Prescriptions</NavLink>
+          <NavLink to="/test-results" isActive={isActive('/test-results')}>🧪 Test Results</NavLink>
+          <NavLink to="/messages" isActive={isActive('/messages')}>💬 Messages</NavLink>
+          <NavLink to="/audit-logs" isActive={isActive('/audit-logs')}>📋 Audit Logs</NavLink>
           <NavLink to="/settings" isActive={isActive('/settings')}>⚙️ Settings</NavLink>
         </nav>
         <div style={{ 
